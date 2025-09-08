@@ -19,29 +19,16 @@ jobs:
           go-version: 1.24
           cache: false
 
-      - name: Build Go app
+      - name: Build Go app with version
         run: |
           go mod tidy
           VERSION=$(date +'%Y%m%d%H%M%S')
           go build -o app_${VERSION} main.go
           echo "APP_VERSION=${VERSION}" >> $GITHUB_ENV
 
-      - name: Setup SSH key
+      - name: Create Git tag for version
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ccprj58@10.24.2.17 "echo '✅ SSH key authentication works'"
-
-      - name: Deploy to server (with version)
-        run: |
-          rsync -avz \
-            --exclude ".git/" \
-            --exclude ".github/" \
-            --exclude "*.log" \
-            --exclude "README.md" \
-            --exclude "go/pkg/" \
-            --exclude "go/bin/" \
-            --exclude "go/src/" \
-            -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
-            ./app_${APP_VERSION} ccprj58@10.24.2.17:/var/www/html/go_projects/HRMODULE/hrnew/HR/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${APP_VERSION}" -m "Release version v${APP_VERSION}"
+          git push origin "v${APP_VERSION}"
